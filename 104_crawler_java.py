@@ -155,10 +155,10 @@ def nextpage(page):
     fetch_data(current_url)
 
 
-for i in range(1, 4):
+for i in range(1, 151):
     print(f"正在爬第{i}頁")
     nextpage(i)
-    if i == 3:
+    if i == 150:
         driver.close()
 
 
