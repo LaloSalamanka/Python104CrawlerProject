@@ -31,15 +31,16 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 import time
-
-
-
+import json
+import mysql.connector
+import pymysql
 def fetch_data(url):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36'}
     response = requests.get(url, headers=headers)
 
     soup = BeautifulSoup(response.text, "html.parser")
     articles = soup.find_all("article", class_="b-block--top-bord job-list-item b-clearfix js-job-item")
+
     for a in articles:
         block_left = a.find("div", class_="b-block__left")
         # 職缺名稱
@@ -101,33 +102,87 @@ def fetch_data(url):
         公司產業: {company_industry}
         公司區域: {company_district}
         要求學經歷: {company_required_education}, {company_required_experience}""")
+
+        # 連接到 MySQL 資料庫
+        try:
+            conn = pymysql.connect(
+                host='127.0.0.1',
+                user='root',
+                password='12345678',
+                database='104crawler_database'
+            )
+            print("成功連接到 MySQL 伺服器")
+        except mysql.connector.Error as err:
+            print(f"連接失敗：{err}")
+
+        # 創建一個游標物件
+        cursor = conn.cursor()
+
+        # 創建資料表（如果不存在）
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS 104crawler (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                job_title VARCHAR(255),
+                company_name VARCHAR(255),
+                company_industry VARCHAR(255),
+                company_district VARCHAR(255),
+                company_required_education VARCHAR(255),
+                company_required_experience VARCHAR(255),
+                company_release_date VARCHAR(255),
+                company_applicants VARCHAR(255)
+            )
+        ''')
+
+        # 插入資料
+        cursor.execute('''
+                    INSERT INTO jobs (job_title, company_name, company_industry, company_district, company_required_education, company_required_experience, company_release_date, company_applicants)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (job_title, company_name, company_industry, company_district, company_required_education,
+                      company_required_experience, company_release_date, company_applicants))
+
+        # 提交事務
+        conn.commit()
+
+        # 關閉連接
+        cursor.close()
+        conn.close()
+
 url = 'https://www.104.com.tw/jobs/search/?cat=2007000000&jobsource=2018indexpoc&ro=0'
-# fetch_data(url)
+fetch_data(url)
+
+# 寫到資料庫
+
+
+
+
+
 # 下一頁的邏輯
 
 # 創建一個 WebDriver
-driver = webdriver.Chrome()
-
-# 打開網頁
-driver.get("https://www.104.com.tw/jobs/search/?cat=2007000000&jobsource=2018indexpoc&ro=0")
-
-# 使用 Selenium 定位並操作下拉式選單
-dropdown = WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located(
-        (By.CSS_SELECTOR,
-         '#main-content .b-float-right label.b-select select.page-select.js-paging-select.gtm-paging-top'))
-)
-select = Select(dropdown)
-
-# 選擇特定頁數（這裡是第 page 頁）
-select.select_by_value("3")
-
-# 等待頁面跳轉完畢
-time.sleep(1)  # 這裡可以調整等待的時間
-
-current_url = driver.current_url
-
-fetch_data(current_url)
+# driver = webdriver.Chrome()
+#
+# # 打開網頁
+# driver.get("https://www.104.com.tw/jobs/search/?cat=2007000000&jobsource=2018indexpoc&ro=0")
+#
+# # 使用 Selenium 定位並操作下拉式選單
+# dropdown = WebDriverWait(driver, 10).until(
+#     EC.presence_of_element_located(
+#         (By.CSS_SELECTOR,
+#          '#main-content .b-float-right label.b-select select.page-select.js-paging-select.gtm-paging-top'))
+# )
+# select = Select(dropdown)
+#
+# # 選擇特定頁數（這裡是第 page 頁）
+# select.select_by_value("3")
+#
+# # 等待頁面跳轉完畢
+# time.sleep(1)  # 這裡可以調整等待的時間
+#
+# # 獲取當前頁面的網址
+# current_url = driver.current_url
+#
+# # 呼叫fetch_data並帶入當前網址
+# fetch_data(current_url)
 
     # 準備第二步 怎麼存到資料庫
 # for a in articles:
