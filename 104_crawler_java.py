@@ -11,13 +11,32 @@ from selenium.webdriver.common.by import By
 import time
 import mysql.connector
 import pymysql
+
+# 工作頁面:
+        # 工作待遇 -> 薪資分析
+        # 管理責任
+        # 出差外派
+        # 上班時段
+        # 需求人數
+        
+    # 條件要求:
+        # 科系要求 -> 經歷學歷要求
+        # 語文條件
+        # 擅長工具 -> 技能需求
+        # 工作技能 -> 技能需求
+# 公司頁面:
+    # 完整地址 -> 公司分布圖(用地圖視覺化工具或地理資訊系統)
+    # 資本額 -> 公司規模分析
+    # 員工人數
+
+
 def fetch_data(url):
     response = requests.get(url)
 
     soup = BeautifulSoup(response.text, "html.parser")
     articles = soup.find_all("article", class_="b-block--top-bord job-list-item b-clearfix js-job-item")
 
-    for a in articles:
+    for a in articles: # 這邊是遍歷每一個工作
         block_left = a.find("div", class_="b-block__left")
         # 職缺名稱
         job_title = block_left.find("h2", class_="b-tit")
@@ -82,6 +101,14 @@ def fetch_data(url):
             print("成功連接到 MySQL 伺服器")
         except mysql.connector.Error as err:
             print(f"連接失敗：{err}")
+            
+        # 封面的東西爬完後, 呼叫開工作頁面的方法
+        # 叫出後開始爬, 爬完關掉
+        
+        # 工作頁面爬完, 呼叫開公司頁面的方法
+        # 叫出後開始爬, 爬完關掉
+        
+        # 最後跟封面的值一起寫進資料庫, 再開始爬下一頁
 
         # 創建一個游標物件
         cursor = conn.cursor()
@@ -154,11 +181,13 @@ def nextpage(page):
     # 呼叫fetch_data並帶入當前網址
     fetch_data(current_url)
 
+# 這邊寫開工作頁面的方法, 包含爬蟲內容
 
-for i in range(1, 151):
+# 這邊寫開公司頁面的方法, 包含爬蟲內容
+
+for i in range(1, 3):
     print(f"正在爬第{i}頁")
     nextpage(i)
-    if i == 150:
+    if i == 2:
         driver.close()
-
 
