@@ -104,6 +104,7 @@ def fetch_data(url):
             
         # 封面的東西爬完後, 呼叫開工作頁面的方法
         # 叫出後開始爬, 爬完關掉
+        open_work_page()
         
         # 工作頁面爬完, 呼叫開公司頁面的方法
         # 叫出後開始爬, 爬完關掉
@@ -163,6 +164,7 @@ button.send_keys(Keys.RETURN)
 fulltime_ul = driver.find_element(By.ID, "js-job-tab")
 fulltime_button = fulltime_ul.find_elements(By.TAG_NAME, "li")[1]
 fulltime_button.click()
+
 def nextpage(page):
     # 使用 Selenium 定位並操作下拉式選單
     dropdown = WebDriverWait(driver, 30).until(
@@ -182,12 +184,20 @@ def nextpage(page):
     fetch_data(current_url)
 
 # 這邊寫開工作頁面的方法, 包含爬蟲內容
+def open_work_page():
+    work_button = driver.find_elements(By.CSS_SELECTOR, "a.js-job-link")
+    for i in range(2, 22): # 開啟一個頁面中的20個工作頁面
+        # 可能可以運用多執行序爬蟲, 建構很多driver?
+        work_button[i].click()
+    driver.close()
+
+
 
 # 這邊寫開公司頁面的方法, 包含爬蟲內容
 
-for i in range(1, 3):
-    print(f"正在爬第{i}頁")
-    nextpage(i)
-    if i == 2:
-        driver.close()
-
+# for i in range(1, 3):
+#     print(f"正在爬第{i}頁")
+#     nextpage(i)
+#     if i == 2:
+#         driver.close()
+nextpage(1)
