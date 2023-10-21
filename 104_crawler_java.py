@@ -1,43 +1,35 @@
 import requests
 from bs4 import BeautifulSoup
-
-from selenium import webdriver
-from selenium.webdriver import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-import time
 import mysql.connector
 import pymysql
-
+from nextpage import Nextpage
+from workpage_driver import Workpage_driver
 # 工作頁面:
-        # 工作待遇 -> 薪資分析
-        # 管理責任
-        # 出差外派
-        # 上班時段
-        # 需求人數
-        
-    # 條件要求:
-        # 科系要求 -> 經歷學歷要求
-        # 語文條件
-        # 擅長工具 -> 技能需求
-        # 工作技能 -> 技能需求
+# 工作待遇 -> 薪資分析
+# 管理責任
+# 出差外派
+# 上班時段
+# 需求人數
+
+# 條件要求:
+# 科系要求 -> 經歷學歷要求
+# 語文條件
+# 擅長工具 -> 技能需求
+# 工作技能 -> 技能需求
 # 公司頁面:
-    # 完整地址 -> 公司分布圖(用地圖視覺化工具或地理資訊系統)
-    # 資本額 -> 公司規模分析
-    # 員工人數
+# 完整地址 -> 公司分布圖(用地圖視覺化工具或地理資訊系統)
+# 資本額 -> 公司規模分析
+# 員工人數
 
-
+# 先把資料都爬下來再合併
 def fetch_data(url):
     response = requests.get(url)
 
     soup = BeautifulSoup(response.text, "html.parser")
     articles = soup.find_all("article", class_="b-block--top-bord job-list-item b-clearfix js-job-item")
 
-    for a in articles: # 這邊是遍歷每一個工作
-        block_left = a.find("div", class_="b-block__left")
+    for jobs in articles:  # 這邊是遍歷每一個工作
+        block_left = jobs.find("div", class_="b-block__left")
         # 職缺名稱
         job_title = block_left.find("h2", class_="b-tit")
         if job_title and job_title.a:
@@ -61,7 +53,6 @@ def fetch_data(url):
         else:
             print("N/A")
 
-
         # 公司區域, 要求經歷, 要求學歷
         company_second_ul = block_left.find("ul", class_="b-list-inline b-clearfix job-list-intro b-content")
         company_second_ul = company_second_ul.find_all("li")
@@ -84,7 +75,7 @@ def fetch_data(url):
             company_release_date = "N/A"
 
         # 應徵人數
-        company_applicants = a.find("div", class_="b-block__right b-pos-relative")
+        company_applicants = jobs.find("div", class_="b-block__right b-pos-relative")
         if company_applicants:
             company_applicants = company_applicants.a.text
         else:
@@ -96,19 +87,18 @@ def fetch_data(url):
                 host='127.0.0.1',
                 user='root',
                 password='12345678',
-                database='104crawler_database'
+                database='test'
             )
             print("成功連接到 MySQL 伺服器")
         except mysql.connector.Error as err:
             print(f"連接失敗：{err}")
-            
+
         # 封面的東西爬完後, 呼叫開工作頁面的方法
         # 叫出後開始爬, 爬完關掉
-        open_work_page()
-        
+
         # 工作頁面爬完, 呼叫開公司頁面的方法
         # 叫出後開始爬, 爬完關掉
-        
+
         # 最後跟封面的值一起寫進資料庫, 再開始爬下一頁
 
         # 創建一個游標物件
@@ -126,7 +116,7 @@ def fetch_data(url):
                 company_required_experience VARCHAR(255),
                 company_release_date VARCHAR(255),
                 company_applicants VARCHAR(255)
-            )
+            ) AUTO_INCREMENT = 1;
         ''')
 
         # 插入資料
@@ -143,53 +133,9 @@ def fetch_data(url):
         cursor.close()
         conn.close()
 
-# 下一頁的邏輯
-# 設定Chrome Driver的執行檔路徑
-options = Options()
-options.add_experimental_option("detach", True)
-options.chrome_executable_path = r"C:\Users\austi\PycharmProjects\pythonCrawler\chromedriver.exe"
-
-# 建立Driver物件實體，用程式操作瀏覽器運作
-driver = webdriver.Chrome(options=options)
-
-# 打開網頁
-driver.get("https://www.104.com.tw/jobs/main/")
-# 在104打java搜尋
-keywordInput = driver.find_element(By.ID, "ikeyword")
-keywordInput.send_keys("java")
-time.sleep(1)
-button = driver.find_element(By.CSS_SELECTOR, ".btn.btn-primary.js-formCheck")
-button.send_keys(Keys.RETURN)
-# 點選全職
-fulltime_ul = driver.find_element(By.ID, "js-job-tab")
-fulltime_button = fulltime_ul.find_elements(By.TAG_NAME, "li")[1]
-fulltime_button.click()
-
-def nextpage(page):
-    # 使用 Selenium 定位並操作下拉式選單
-    dropdown = WebDriverWait(driver, 30).until(
-        EC.presence_of_element_located(
-            (By.CSS_SELECTOR,
-             '#main-content .b-float-right label.b-select select.page-select.js-paging-select.gtm-paging-top'))
-    )
-    select = Select(dropdown)
-
-    # 選擇特定頁數（這裡是第 page 頁）
-    select.select_by_value(str(page))
-
-    # 獲取當前頁面的網址
-    current_url = driver.current_url
-
-    # 呼叫fetch_data並帶入當前網址
-    fetch_data(current_url)
 
 # 這邊寫開工作頁面的方法, 包含爬蟲內容
-def open_work_page():
-    work_button = driver.find_elements(By.CSS_SELECTOR, "a.js-job-link")
-    for i in range(2, 22): # 開啟一個頁面中的20個工作頁面
-        # 可能可以運用多執行序爬蟲, 建構很多driver?
-        work_button[i].click()
-    driver.close()
+
 
 
 
@@ -200,4 +146,10 @@ def open_work_page():
 #     nextpage(i)
 #     if i == 2:
 #         driver.close()
-nextpage(1)
+
+for i in range(1, 3):
+    NextPage = Nextpage(i)
+    fetch_data(NextPage.current_url)
+    Workpage_driver(NextPage.current_url)
+
+# driver.close()
