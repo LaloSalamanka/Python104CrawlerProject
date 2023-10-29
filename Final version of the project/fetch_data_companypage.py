@@ -1,56 +1,39 @@
 import requests
 from bs4 import BeautifulSoup
-import mysql.connector
-import pymysql
 import time
 
 class Fetch_data_companypage:
+    company_name = None
+    number_of_employees = None
+    industry = None
     def __init__(self, url):
-        time.sleep(1)
+        # time.sleep(1)
         response = requests.get(url)
         if response.status_code == requests.codes.ok:
             soup = BeautifulSoup(response.text, "lxml")
-            # 職缺名稱
+
+            # 公司名稱
             try:
-                job_title_div = soup.find_all("div", class_="text-truncate d-inline-block align-bottom")
-                job_title = job_title_div[2].text.strip()
-                print(job_title)
+                company_name = soup.find("h1", class_="h1 d-inline")
+                self.company_name = company_name.text.strip()
             except Exception as e:
-                print(f"Error in job_title: {e}")
-
-
-
+                print(f"Error in company_name: {e}")
+            # 公司規模
             try:
-                conn = pymysql.connect(
-                    host='127.0.0.1',
-                    user='root',
-                    password='12345678',
-                    database='test',
-                    charset='utf8mb4'
-                )
-
-                # 創建一個游標物件
-                cursor = conn.cursor()
-
-                # 插入資料
-                cursor.execute('''
-                INSERT INTO test (company_name)
-                VALUES (%s)
-                                ''', (company_name))
-
-                # 提交事務
-                conn.commit()
-
-                # 關閉連接
-                cursor.close()
-                conn.close()
-
-            except mysql.connector.Error as err:
-                print(f"連接失敗：{err}")
+                number_of_employees = soup.find_all("div", class_="row mb-2")
+                number_of_employees = number_of_employees[3].find("div", class_="col pl-1 p-0 intro-table__data")
+                number_of_employees = number_of_employees.find("p", class_="t3 mb-0")
+                self.number_of_employees = number_of_employees.text.strip()
+            except Exception as e:
+                print(f"Error in number_of_employees: {e}")
+            # 產業類別
+            try:
+                industry = soup.find("div", class_="intro-table row")
+                industry = industry.find("div", class_="col pl-1 p-0 intro-table__data")
+                industry = industry.find("p", class_="t3 mb-0")
+                self.industry = industry.text.strip()
+            except Exception as e:
+                print(f"Error in industry: {e}")
 
         else:
             print("取得網頁內容失敗")
-
-
-
-
